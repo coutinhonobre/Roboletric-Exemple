@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.text.observe(this) { newText ->
             binding.textView.text = newText
+            binding.textView2.text = TextGeneric().getText()
         }
 
         with(binding) {

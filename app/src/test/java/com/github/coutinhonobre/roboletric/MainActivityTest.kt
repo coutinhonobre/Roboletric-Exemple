@@ -3,7 +3,9 @@ package com.github.coutinhonobre.roboletric
 import android.widget.Button
 import android.widget.TextView
 import io.mockk.every
+import io.mockk.mockkConstructor
 import io.mockk.mockkObject
+import io.mockk.mockkStatic
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
@@ -14,12 +16,12 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30])
+@Config(application = TestApp::class)
 class MainActivityTest {
 
     @Before
     fun setUp() {
-        mockkObject(TextProvider)
+//        mockkObject(TextProvider)
     }
 
     @Test
@@ -33,17 +35,18 @@ class MainActivityTest {
     @Test
     fun `testa o clique do botão e a atualização do texto da TextView`() {
         val activity = Robolectric.buildActivity(MainActivity::class.java).create().start().resume().get()
-
-        every { TextProvider.getTextRandom() } returns "Texto atualizado"
+        mockkConstructor(TextGeneric::class)
+        every { anyConstructed<TextGeneric>().getText() } returns "Texto Generico2"
 
         val textView = activity.findViewById<TextView>(R.id.textView)
+        val textView2 = activity.findViewById<TextView>(R.id.textView2)
         val button = activity.findViewById<Button>(R.id.button)
 
         button.performClick()
 
-        // Executa todas as tarefas pendentes, incluindo a atualização do LiveData
         ShadowLooper.runUiThreadTasksIncludingDelayedTasks()
 
         assertEquals("Texto atualizado", textView.text.toString())
+        assertEquals("Texto Generico2", textView2.text.toString())
     }
 }
