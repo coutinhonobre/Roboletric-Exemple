@@ -61,6 +61,6 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    testImplementation("org.robolectric:robolectric:4.10.3")
-    testImplementation("io.mockk:mockk:1.12.0")
+    testImplementation(libs.robolectric)
+    testImplementation(libs.mockk)
 }
