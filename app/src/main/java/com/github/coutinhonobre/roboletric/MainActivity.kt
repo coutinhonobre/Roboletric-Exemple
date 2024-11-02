@@ -7,6 +7,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import com.github.coutinhonobre.roboletric.databinding.ActivityMainBinding
+import com.github.coutinhonobre.roboletric.dialog.CustomDialogFragment
 
 
 class MainActivity : AppCompatActivity() {
@@ -39,6 +40,11 @@ class MainActivity : AppCompatActivity() {
         with(binding) {
             button.setOnClickListener {
                 viewModel.updateText()
+            }
+
+            showDialog.setOnClickListener {
+                val dialog = CustomDialogFragment.newInstance()
+                dialog.show(supportFragmentManager, "CustomDialog")
             }
         }
     }
