@@ -9,17 +9,15 @@ class CustomDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return activity?.let {
-            val builder = AlertDialog.Builder(it)
-            builder.setTitle("Título do Diálogo")
+            AlertDialog.Builder(it)
+            .setTitle("Título do Diálogo")
                 .setMessage("Este é o conteúdo do diálogo.")
                 .setPositiveButton("OK") { dialog, _ ->
                     dialog.dismiss()
                 }
                 .setNegativeButton("Cancelar") { dialog, _ ->
                     dialog.dismiss()
-                }
-
-            builder.create()
+                }.create()
         } ?: throw IllegalStateException("Activity cannot be null")
     }
 
