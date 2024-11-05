@@ -7,7 +7,11 @@ import androidx.fragment.app.FragmentManager
 import com.github.coutinhonobre.roboletric.MainActivity
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkConstructor
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import io.mockk.verify
+import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -30,8 +34,13 @@ class CustomDialogFragmentTest {
         fragmentManager = activity.supportFragmentManager
     }
 
+    @After
+    fun tearDown() {
+        unmockkAll()
+    }
+
     @Test
-    fun testDialogExists() {
+    fun testDialogCreation() {
         activity = Robolectric.buildActivity(MainActivity::class.java).create().start().resume().get()
         val fragmentManager = activity.supportFragmentManager
         val dialogFragment = CustomDialogFragment.newInstance()
@@ -44,7 +53,7 @@ class CustomDialogFragmentTest {
     }
 
     @Test
-    fun `test dialog title and message are correct`() {
+    fun testDialogTitleAndMessage() {
         // Arrange
         val dialogFragment = CustomDialogFragment.newInstance()
         dialogFragment.show(fragmentManager, "CustomDialogFragment")
@@ -60,9 +69,8 @@ class CustomDialogFragmentTest {
         assertEquals("Este é o conteúdo do diálogo.", dialogMessage?.text)
     }
 
-
     @Test
-    fun `test positive button click dismisses dialog`() {
+    fun testPositiveButtonDismiss() {
         // Arrange
         val dialogFragment = CustomDialogFragment.newInstance()
         dialogFragment.show(fragmentManager, "CustomDialogFragment")
@@ -76,11 +84,10 @@ class CustomDialogFragmentTest {
 
         val mockDialogInterface = mockk<Dialog>(relaxed = true)
         every { mockDialogInterface.dismiss() } returns Unit
-
     }
 
     @Test
-    fun `test negative button click dismisses dialog`() {
+    fun testNegativeButtonDismiss() {
         // Arrange
         val dialogFragment = CustomDialogFragment.newInstance()
         dialogFragment.show(fragmentManager, "CustomDialogFragment")
@@ -91,6 +98,68 @@ class CustomDialogFragmentTest {
 
         val negativeButton = dialog?.getButton(AlertDialog.BUTTON_NEGATIVE)
         assertNotNull("Negative button should be present", negativeButton)
+    }
+
+    @Test
+    fun testMockCustomDialogModelConstructor() {
+        // Mock the constructor of CustomDialogModel
+        mockkConstructor(CustomDialogModel::class)
+
+        // Mock the behavior of the constructor's properties
+        every { anyConstructed<CustomDialogModel>().title } returns "Título Mockado"
+        every { anyConstructed<CustomDialogModel>().message } returns "Mensagem Mockada"
+        every { anyConstructed<CustomDialogModel>().positiveButton } returns "Confirmar"
+        every { anyConstructed<CustomDialogModel>().negativeButton } returns "Voltar"
+
+        // Arrange
+        val dialogFragment = CustomDialogFragment.newInstance()
+        dialogFragment.show(fragmentManager, "CustomDialogFragment")
+        Robolectric.flushForegroundThreadScheduler()
+
+        // Act
+        val dialog = ShadowDialog.getLatestDialog() as AlertDialog?
+        assertNotNull("Dialog should be shown", dialog)
+
+        // Assert
+        // Verify that the properties were accessed and correspond to the mocked values
+        verify { anyConstructed<CustomDialogModel>().title }
+    }
+
+
+    @Test
+    fun testAlertDialogCreation() {
+        // Arrange
+        val customDialogModel = CustomDialogModel(
+            title = "Título do Diálogo",
+            message = "Este é o conteúdo do diálogo.",
+            positiveButton = "OK",
+            negativeButton = "Cancelar"
+        )
+
+        // Mockar o construtor de AlertDialog.Builder
+        mockkConstructor(AlertDialog.Builder::class)
+
+        // Criar um mock do AlertDialog
+        val alertDialogMock = mockk<AlertDialog>(relaxed = true)
+
+        // Definir o comportamento do mock para retornar o AlertDialog mockado
+        every { anyConstructed<AlertDialog.Builder>().create() } returns alertDialogMock
+
+        // Act
+        val dialogFragment = CustomDialogFragment.newInstance()
+        dialogFragment.show(fragmentManager, "CustomDialogFragment")
+        Robolectric.flushForegroundThreadScheduler()
+
+        // Assert
+        verify { anyConstructed<AlertDialog.Builder>().setTitle(customDialogModel.title) }
+        verify { anyConstructed<AlertDialog.Builder>().setMessage(customDialogModel.message) }
+        verify { anyConstructed<AlertDialog.Builder>().setPositiveButton(customDialogModel.positiveButton, any()) }
+        verify { anyConstructed<AlertDialog.Builder>().setNegativeButton(customDialogModel.negativeButton, any()) }
+        verify { anyConstructed<AlertDialog.Builder>().create() }
 
     }
+
+
+
+
 }
