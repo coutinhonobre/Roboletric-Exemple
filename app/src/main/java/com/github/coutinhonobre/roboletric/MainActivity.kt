@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
+import com.github.coutinhonobre.roboletric.componets.ShowBottomSheetDialog
 import com.github.coutinhonobre.roboletric.databinding.ActivityMainBinding
 import com.github.coutinhonobre.roboletric.dialog.CustomDialogFragment
 
@@ -45,6 +46,10 @@ class MainActivity : AppCompatActivity() {
             showDialog.setOnClickListener {
                 val dialog = CustomDialogFragment.newInstance()
                 dialog.show(supportFragmentManager, "CustomDialog")
+            }
+
+            showSheet.setOnClickListener {
+                ShowBottomSheetDialog().build(this@MainActivity)
             }
         }
     }
