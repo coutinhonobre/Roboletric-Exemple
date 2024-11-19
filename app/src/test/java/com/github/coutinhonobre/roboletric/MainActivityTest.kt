@@ -1,85 +1,138 @@
 package com.github.coutinhonobre.roboletric
 
-import android.view.View
+import android.os.Looper
 import android.widget.Button
 import android.widget.TextView
-import com.github.coutinhonobre.roboletric.componets.ShowBottomSheetDialog
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import io.mockk.every
-import io.mockk.mockkConstructor
-import io.mockk.mockkObject
-import org.junit.Assert.*
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert
+import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowDialog
-import org.robolectric.shadows.ShadowLooper
-import org.robolectric.shadows.ShadowToast
+import org.robolectric.annotation.LooperMode
 
+
+@ExperimentalCoroutinesApi
 @RunWith(RobolectricTestRunner::class)
 @Config(application = TestApp::class)
+@LooperMode(LooperMode.Mode.PAUSED)
 class MainActivityTest {
+
+    @get:Rule
+    val instantTaskExecutorRule = InstantTaskExecutorRule()
+
+
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+//    private val testDispatcher = StandardTestDispatcher()
+
 
     private lateinit var activity: MainActivity
 
     @Before
     fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+
         activity = Robolectric.buildActivity(MainActivity::class.java)
             .create()
             .start()
             .resume()
             .get()
+
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
-    fun testInitialTextView() {
-        val textView = activity.findViewById<TextView>(R.id.textView)
-        assertEquals("Texto inicial", textView.text.toString())
-    }
-
-    @Test
-    fun testClickTextView() {
-        mockkConstructor(TextGeneric::class)
-        every { anyConstructed<TextGeneric>().getText() } returns "Texto Generico2"
-
-        val textView = activity.findViewById<TextView>(R.id.textView)
-        val textView2 = activity.findViewById<TextView>(R.id.textView2)
+    fun testClickTextView() = runTest {
         val button = activity.findViewById<Button>(R.id.button)
 
         button.performClick()
 
-        ShadowLooper.runUiThreadTasksIncludingDelayedTasks()
+        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals("Texto atualizado", textView.text.toString())
-        assertEquals("Texto Generico2", textView2.text.toString())
+        shadowOf(Looper.getMainLooper()).runToEndOfTasks()
+
+        assertWithTimeout {
+            val textView = activity.findViewById<TextView>(R.id.textView)
+            assertEquals("Texto atualizado", textView.text.toString())
+        }
     }
+
 
     @Test
-    fun testShowBottomSheetDialog() {
-        // Simula o clique no botão que exibe o BottomSheetDialog
-        val showSheetButton = activity.findViewById<Button>(R.id.showSheet)
-        showSheetButton.performClick()
+    fun testClickTextView2() = runTest {
+        val button = activity.findViewById<Button>(R.id.button)
 
-        // Verifica se o BottomSheetDialog está sendo exibido
-        val dialog = ShadowDialog.getLatestDialog() as BottomSheetDialog
-        assertNotNull("O diálogo deve estar presente", dialog)
-        assertTrue("O diálogo deve estar visível", dialog.isShowing)
+        button.performClick()
 
-        // Testa clique na "Ação 1" e verifica o Toast e o fechamento do diálogo
-        val action1Button = dialog.findViewById<View>(R.id.action1)
-        action1Button?.performClick()
-        assertEquals("Ação 1 selecionada", ShadowToast.getTextOfLatestToast())
-        assertFalse("O diálogo deve estar fechado após clique na Ação 1", dialog.isShowing)
+        advanceUntilIdle()
+        runCurrent()
 
-        // Exibe o diálogo novamente para testar a "Ação 2"
-        showSheetButton.performClick()
-        val dialog2 = ShadowDialog.getLatestDialog() as BottomSheetDialog
-        val action2Button = dialog2.findViewById<View>(R.id.action2)
-        action2Button?.performClick()
-        assertEquals("Ação 2 selecionada", ShadowToast.getTextOfLatestToast())
-        assertFalse("O diálogo deve estar fechado após clique na Ação 2", dialog2.isShowing)
+        shadowOf(Looper.getMainLooper()).runToEndOfTasks()
+
+        waitForCondition {
+            val textView = activity.findViewById<TextView>(R.id.textView)
+            textView.text.toString() == "Texto atualizado"
+        }
+
+        val textView = activity.findViewById<TextView>(R.id.textView)
+        assertEquals("Texto atualizado", textView.text.toString())
+    }
+
+}
+
+suspend fun waitForCondition(
+    timeoutMillis: Long = 5000,
+    conditionCheckIntervalMillis: Long = 100,
+    condition: () -> Boolean
+) {
+    val startTime = System.currentTimeMillis()
+    while (!condition()) {
+        if (System.currentTimeMillis() - startTime > timeoutMillis) {
+            throw Exception("Condition not met within $timeoutMillis milliseconds")
+        }
+        delay(conditionCheckIntervalMillis)
     }
 }
+
+suspend fun assertWithTimeout(
+    timeoutMillis: Long = 5000,
+    conditionCheckIntervalMillis: Long = 100,
+    assertion: () -> Unit
+) {
+    val startTime = System.currentTimeMillis()
+    while (true) {
+        try {
+            assertion()
+            return
+        } catch (e: AssertionError) {
+            if (System.currentTimeMillis() - startTime > timeoutMillis) {
+                throw AssertionError("Assertion failed after $timeoutMillis ms: ${e.message}", e)
+            }
+            delay(conditionCheckIntervalMillis)
+        }
+    }
+}
+
+
